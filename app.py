@@ -1,32 +1,34 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
 
 app = FastAPI()
 
-templates = Jinja2Templates(directory="templates")
+# Allow frontend (HTML) to access backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # change to your domain in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/", response_class=HTMLResponse)
-async def login_page(request: Request):
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "message": ""}
-    )
+class LoginData(BaseModel):
+    username: str
+    password: str
 
-@app.post("/login", response_class=HTMLResponse)
-async def login(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...)
-):
-    # Simple demo validation
-    if username == "admin" and password == "password":
-        message = "Login successful!"
-    else:
-        message = "Invalid username or password"
+@app.post("/login")
+async def login(data: LoginData):
+    if data.username == "admin" and data.password == "password":
+        return {"success": True, "message": "Login successful"}
+    return {"success": False, "message": "Invalid username or password"}
 
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "message": message}
+# Run directly with python app.py
+if __name__ == "__main__":
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=False
     )
